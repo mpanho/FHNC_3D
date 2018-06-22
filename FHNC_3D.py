@@ -3,9 +3,8 @@ import numpy as np
 from scipy.fftpack import fft, ifft,dst,diff
 
 def set_default():
-	global n,xmax,x,dx, k, dk, Ry, pi, nu, r0kF
+	global n,xmax,x,dx, k, dk, pi, nu, r0kF, imax
 	n=3000
-	n2=2*n
 	xmax=50.
 	dx=xmax/n
 	x=np.arange(0,xmax,xmax/n)+dx/2
@@ -14,14 +13,13 @@ def set_default():
 	dk=pi/xmax#*(n)/(n+1)
 	k=np.arange(0,dk*n,dk)  + dk/2
 
-	nu=1  # degeneracy factor, for spin polarized calculation set to 1
+	nu=2  # degeneracy factor, for spin polarized calculation set to 1
 	r0kF=(9*pi/2/nu)**(1/3.)
-	x2=x-dx/2
-	k2=k-dk/2
-	Ry=13.605
+	imax=400
 	
 def update():
 	global n,xmax,x,dx, k, dk, nu, r0kF
+	print('new values for n=', n,' xmax=',xmax, ' nu=',nu)
 	dx=xmax/n
 	x=np.arange(0,xmax,xmax/n)+dx/2
 	dk=pi/xmax#*(n)/(n+1)
@@ -76,7 +74,7 @@ def multip(gin,gold):
     
 def solve_EL(rs):
 	"Do the FHNC calculation"
-	global g0r,rslist
+	global g0r,rslist,imax
 	print('rs=',rs)
 	print('nu=',nu)
 	print('If nu=1, spin polarized calculation; if nu=2 paramagnetic calculation')
@@ -94,7 +92,7 @@ def solve_EL(rs):
 	drs=0.5
 	rslist=np.linspace(rs_start,rs,num=int(rs*2)+2)#np.arange(drs+0,rs+drs,drs)
 	j=0
-	imax=400
+	
 	accuracy=4e-4
 	hist=[]
 	gall=[]
@@ -110,7 +108,7 @@ def solve_EL(rs):
 			i=i+1
 			if (i==imax):
 				print("not converged at rs=", rsi)
-				print(accuracy)
+				print("Note: accuracy might be ok for your needs, otherwiese increase imax")
 			S0kold=S0k
 			wI=-k**2/2/rsi**2 * (1/SF0-1/S0k)**2 * (2*S0k/SF0 +1)
 			wIr=IFFT(wI)
