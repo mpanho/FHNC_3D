@@ -98,6 +98,7 @@ def solve_EL(rs):
 	accuracy=4e-4
 	hist=[]
 	gall=[]
+	print('Calculation has started ...')
 	for rsi in rslist:
 		j=j+1
 		i=0
