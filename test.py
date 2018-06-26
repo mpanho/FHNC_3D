@@ -2,7 +2,8 @@
 import FHNC_3D as FHNC
 import numpy as np
 
-rs=input('Enter rs vaule:')
+tmp=input('Enter rs vaule:')
+rs=float(tmp)
 FHNC.set_default()
 
 pol=input('for spin polarized calculation enter [y]:')
