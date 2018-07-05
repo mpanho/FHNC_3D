@@ -1,6 +1,7 @@
 
 import numpy as np
-from scipy.fftpack import fft, ifft,dst,diff
+#from scipy.fftpack import fft, ifft,diff
+from numpy.fft import fft, ifft #,diff
 
 def set_default():
     global n,xmax,x,dx, k, dk, pi, nu, r0kF, imax
