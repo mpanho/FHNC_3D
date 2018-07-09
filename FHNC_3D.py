@@ -71,7 +71,7 @@ def multip(gin,gold):
         
     return res
     
-def solve_EL(rs):
+def solve_ladder(rs):
     "Do the FHNC calculation"
     global g0r,rslist,imax
     print('rs=',rs)
@@ -131,4 +131,126 @@ def solve_EL(rs):
     print('residual=',residual, 'iterations=',i)
     return g0r
     
+def solve_Kallio(rs):
+    "Do the calculation"
+    global g0r,rslist,imax
+    print('rs=',rs)
+    print('nu=',nu)
+    print('If nu=1, spin polarized calculation; if nu=2 paramagnetic calculation')
+    print('n=',n)
+    print('xmax=',xmax)
+    vcoulrs=1*2/x #*np.exp(-x/0.3/xmax)
+    gF=1-lF(r0kF*x)**2/nu
+    SF0=1+FFT(gF-1)   #SF(k2/r0kF)
+    rs_start=.5
+    Vphk=FFT(vcoulrs/rs_start/10)
+    S0k=SF0 #1/np.sqrt(1 + 2*rs_start**2/k**2 * Vphk)
+    g0old=gF
+    Gddold=IFFT((S0k/SF0-1)/SF0)
+    wIFrs=-k**2/2 * (1-1/SF0)**2 * (2*SF0 +1)
+    wIFrrs=IFFT(wIFrs)
+    lap_gFrs= 2/(x**2*np.sqrt(gF)) * Diff(x**2*Diff(np.sqrt(gF)))
+    drs=0.5
+    tmp=int(rs*2)+2
+    rslist=np.linspace(rs_start,rs,tmp)
+    j=0
     
+    accuracy=4e-4
+    hist=[]
+    gall=[]
+    print('Calculation has started ...')
+    for rsi in rslist:
+        j=j+1
+        i=0
+        residual=0.1
+        if (rsi==rs):
+            accuracy=4e-5
+            
+        while (residual>accuracy and i<imax):
+            i=i+1
+            if (i==imax):
+                print("not converged at rs=", rsi)
+                print("Note: accuracy might be ok for your needs, otherwiese increase imax")
+            S0kold=S0k
+            wI=-k**2/2/rsi**2 * (1/SF0-1/S0k)**2 * (2*S0k/SF0 +1)
+            wIr=IFFT(wI)
+            wIB=-k**2/2/rsi**2 * (1-1/S0k)**2 * (2*S0k +1)
+            wIBr=IFFT(wIB)
+            g00=1+IFFT(S0k-1)
+            g0r=g0old*multip(g00,g0old)  #np.exp(1*(g00-g0old))
+            g0old=g0r
+            #Vph= (g0r-0)*vcoulrs/rsi + g0r*(lap_gFrs/rsi**2 +wIr) + (-1)*wIBr + 2/rsi**2*np.abs(Diff(np.sqrt(g0r)))**2
+            Vph= (g0r-0)*vcoulrs/rsi + g0r*(lap_gFrs -wIFrrs)/rsi**2 + (g0r-1)*wIBr + 2/rs**2*np.abs(Diff(np.sqrt(g0r)))**2
+            Vphk=FFT(Vph) + 0*6/k**2/rsi
+            if any(np.less_equal(np.real(1 + 2*rsi**2/k**2 * Vphk), np.zeros(n))):
+                print("instability at rs=",rsi)
+                #break
+            S0k=1/np.sqrt(np.abs(1 + 2*rsi**2/k**2 * Vphk))
+            g00=1+IFFT(S0k-1)
+            residual=np.sum(np.abs(g00-g0r))*dx
+            hist.append(residual)
+    
+        gall.append(g00[0])
+    print('...Finished')
+    print('residual=',residual, 'iterations=',i)
+    return g0r
+    
+def solve_sFHNC(rs):
+    "Do the FHNC calculation"
+    global g0r,rslist,imax
+    print('rs=',rs)
+    print('nu=',nu)
+    print('If nu=1, spin polarized calculation; if nu=2 paramagnetic calculation')
+    print('n=',n)
+    print('xmax=',xmax)
+    vcoulrs=1*2/x #*np.exp(-x/0.3/xmax)
+    gF=1-lF(r0kF*x)**2/nu
+    SF0=1+FFT(gF-1)   #SF(k2/r0kF)
+    rs_start=.5
+    Vphk=FFT(vcoulrs/rs_start/10)
+    S0k=SF0 #1/np.sqrt(1 + 2*rs_start**2/k**2 * Vphk)
+    g0old=gF
+    Gddold=IFFT((S0k/SF0-1)/SF0)
+    drs=0.5
+    tmp=int(rs*2)+2
+    rslist=np.linspace(rs_start,rs,tmp)
+    j=0
+    
+    accuracy=4e-4
+    hist=[]
+    gall=[]
+    print('Calculation has started ...')
+    for rsi in rslist:
+        j=j+1
+        i=0
+        residual=0.1
+        if (rsi==rs):
+            accuracy=4e-5
+            
+        while (residual>accuracy and i<imax):
+            i=i+1
+            if (i==imax):
+                print("not converged at rs=", rsi)
+                print("Note: accuracy might be ok for your needs, otherwiese increase imax")
+            S0kold=S0k
+            wI=-k**2/2/rsi**2 * (1/SF0-1/S0k)**2 * (2*S0k/SF0 +1)
+            wIr=IFFT(wI)
+            g00=1+IFFT(S0k-1)
+            #g0r=g0old*multip(g00,g0old)  #np.exp(1*(g00-g0old))
+            #g0old=g0r
+            Gddr=Gddold + .05*(IFFT( (S0k/SF0-1)/SF0 ) - Gddold) 
+            Gddold=Gddr
+            Vph= (1+Gddr)*vcoulrs/rsi + 2/rsi**2*Diff(np.sqrt(np.abs(1+Gddr)))**2 + Gddr*wIr
+            Vphk=FFT(Vph) + 0*6/k**2/rsi
+            if any(np.less_equal(np.real(1/SF0 + 2*rsi**2/k**2 * Vphk), np.zeros(n))):
+                print("instability at rs=",rsi)
+                #break
+            S0k=1/np.sqrt(np.abs( 1/SF0**2 + 2*rsi**2/k**2 * Vphk))
+            g00=1+IFFT(S0k-1)
+            residual=np.sum(np.abs(S0k-S0kold))*dx
+            hist.append(residual)
+    
+        gall.append(g00[0])
+    print('...Finished')
+    print('residual=',residual, 'iterations=',i)
+    return g00
